@@ -11,7 +11,7 @@ import Foundation
 struct HomePage: View {
     @StateObject private var vm = StrainsViewModel()
     @State private var selectedEffect: String? = nil
-    let effectOptions = ["Relaxed", "Happy", "Euphoric", "Creative", "Sleepy", "Hungry", "Energetic", "Focused"]
+    let effectOptions = ["Relaxing", "Happy", "Euphoric", "Creative",  "Energizing", "Focused", "Stress-relieving", "Pain-relieving"]
     
     var body: some View {
         ScrollView {
@@ -104,23 +104,84 @@ struct HomePage: View {
                     .padding(.horizontal)
                 }
                 
-                // Filtered Strains List
-                let filteredStrains = selectedEffect == nil ? vm.strains : vm.strains.filter { $0.effect.contains(selectedEffect!) }
-                
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                // MARK: - Filtered Strains List
+                let filteredStrains: [Strain] = {
+                    guard let eff = selectedEffect, !eff.isEmpty else {
+                        return vm.strains
+                    }
+                    return vm.strains.filter { strain in
+                        strain.effect.contains { tag in
+                            tag.lowercased() == eff.lowercased()
+                        }
+                    }
+                }()
+
+                VStack(spacing: 16) {
                     ForEach(filteredStrains) { strain in
-                        HotDealItemView(
-                            name: strain.name,
-                            thc: String(format: "%.1f–%.1f", strain.THC_min, strain.THC_max),
-                            cbd: String(format: "%.1f", strain.CBD_min),
-                            parents: strain.parents.joined(separator: " × "),
-                            smell: strain.smell_flavour.joined(separator: ", "),
-                            tags: strain.effect,
-                            imageURL: strain.main_url
-                        )
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top, spacing: 16) {
+                                // 1. รูป thumbnail
+                                AsyncImage(url: URL(string: strain.main_url)) { phase in
+                                    if let img = phase.image {
+                                        img.resizable()
+                                           .scaledToFill()
+                                           .frame(width: 80, height: 80)
+                                           .cornerRadius(8)
+                                    } else if phase.error != nil {
+                                        Color.gray
+                                          .frame(width: 80, height: 80)
+                                          .cornerRadius(8)
+                                    } else {
+                                        ProgressView()
+                                          .frame(width: 80, height: 80)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // 2. ชื่อและปุ่มตะกร้า
+                                    HStack {
+                                        Text(strain.name)
+                                            .font(.headline)
+                                        Spacer()
+                                        Button {
+                                            // TODO: add to cart
+                                        } label: {
+                                            Image(systemName: "cart.fill")
+                                                .foregroundColor(.green)
+                                        }
+                                    }
+
+                                    // 3. THC / CBD (บน)
+                                    Text("THC: \(String(format: "%.1f–%.1f", strain.THC_min, strain.THC_max))    CBD: \(String(format: "%.1f–%.1f", strain.CBD_min, strain.CBD_max))")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+
+                                    // 4. Smell (ล่าง)
+                                    Text("Smell: " + strain.smell_flavour.joined(separator: ", "))
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+
+                                    // 5. Tags (effect) เป็นกรอบๆ
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 8) {
+                                            ForEach(strain.effect, id: \.self) { tag in
+                                                Text(tag.capitalized)
+                                                    .font(.caption)
+                                                    .padding(.vertical, 4)
+                                                    .padding(.horizontal, 8)
+                                                    .background(Color.green.opacity(0.2))
+                                                    .cornerRadius(8)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Divider()
+                        }
+                        .padding(.horizontal)
                     }
                 }
-                .padding(.horizontal)
                 .padding(.top, 8)
             }
         }
