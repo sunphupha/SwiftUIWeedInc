@@ -8,14 +8,31 @@
 import SwiftUI
 import Foundation
 
+import FirebaseCore
+import FirebaseStorage
+
+class CartManager: ObservableObject {
+    @Published var items: [Strain] = []
+
+    func add(_ item: Strain) {
+        items.append(item)
+    }
+
+    func remove(_ item: Strain) {
+        items.removeAll { $0.id == item.id }
+    }
+}
+
 struct HomePage: View {
     @StateObject private var vm = StrainsViewModel()
     @State private var selectedEffect: String? = nil
     let effectOptions = ["Relaxing", "Happy", "Euphoric", "Creative",  "Energizing", "Focused", "Stress-relieving", "Pain-relieving"]
+    @EnvironmentObject var cartManager: CartManager
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading) {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading) {
                 
                 // Header
                 HStack {
@@ -30,6 +47,12 @@ struct HomePage: View {
                         .padding()
                         .background(Color.green.opacity(0.1))
                         .cornerRadius(8)
+                    NavigationLink(destination: CartPage()) {
+                        Image(systemName: "cart")
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(8)
+                    }
                 }
                 .padding(.horizontal)
                 
@@ -144,7 +167,7 @@ struct HomePage: View {
                                             .font(.headline)
                                         Spacer()
                                         Button {
-                                            // TODO: add to cart
+                                            cartManager.add(strain)
                                         } label: {
                                             Image(systemName: "cart.fill")
                                                 .foregroundColor(.green)
@@ -185,8 +208,10 @@ struct HomePage: View {
                 .padding(.top, 8)
             }
         }
-        .onAppear {
-            vm.fetchStrains()
+            }
+            .onAppear {
+                vm.fetchStrains()
+            }
         }
     }
     
@@ -249,8 +274,66 @@ struct HomePage: View {
             .cornerRadius(12)
         }
     }
-}
+
+    struct CartPage: View {
+        @EnvironmentObject var cartManager: CartManager
+
+        var body: some View {
+            VStack(alignment: .leading) {
+                Text("Your Cart")
+                    .font(.largeTitle)
+                    .padding()
+
+                List {
+                    ForEach(cartManager.items) { item in
+                        HStack(alignment: .top, spacing: 16) {
+                            // Thumbnail
+                            AsyncImage(url: URL(string: item.main_url)) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 60, height: 60)
+                                        .cornerRadius(8)
+                                } else if phase.error != nil {
+                                    Color.gray
+                                        .frame(width: 60, height: 60)
+                                        .cornerRadius(8)
+                                } else {
+                                    ProgressView()
+                                        .frame(width: 60, height: 60)
+                                }
+                            }
+
+                            // Details
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.name)
+                                    .font(.headline)
+                                Text("THC: \(String(format: "%.1f–%.1f", item.THC_min, item.THC_max))  CBD: \(String(format: "%.1f–%.1f", item.CBD_min, item.CBD_max))")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Text("Smell: " + item.smell_flavour.joined(separator: ", "))
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+
+                            Spacer()
+
+                            // Remove button
+                            Button {
+                                cartManager.remove(item)
+                            } label: {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                }
+            }
+        }
+    }
 //
 #Preview {
-    HomePage()
+    HomePage().environmentObject(CartManager())
 }

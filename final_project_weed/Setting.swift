@@ -8,6 +8,8 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import PhotosUI
+import FirebaseStorage
 
 struct SettingPage: View {
     @StateObject private var viewModel = UserViewModel()
@@ -19,6 +21,40 @@ struct SettingPage: View {
     @State private var confirmPassword: String = ""
     @State private var showPasswordUpdateAlert = false
     @State private var passwordUpdateMessage = ""
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var selectedImageData: Data? = nil
+    
+    func uploadProfileImageAndSaveURL(data: Data) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let storageRef = Storage.storage().reference().child("profileImages/\(uid).jpg")
+        
+        storageRef.putData(data, metadata: nil) { metadata, error in
+            if let error = error {
+                print("Upload failed: \(error.localizedDescription)")
+                return
+            }
+
+            storageRef.downloadURL { url, error in
+                if let error = error {
+                    print("Failed to get download URL: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let url = url else { return }
+                let db = Firestore.firestore()
+                db.collection("users").document(uid).updateData([
+                    "photoURL": url.absoluteString
+                ]) { error in
+                    if let error = error {
+                        print("Failed to update Firestore with photoURL: \(error.localizedDescription)")
+                    } else {
+                        print("Profile image uploaded and URL saved.")
+                        viewModel.fetchUserData()
+                    }
+                }
+            }
+        }
+    }
     
     func updateEditableFields(with user: UserModel) {
         editableName = user.displayName
@@ -35,7 +71,13 @@ struct SettingPage: View {
                 
                 if let user = viewModel.user {
                     VStack(spacing: 10) {
-                        if !user.photoURL.isEmpty, let url = URL(string: user.photoURL) {
+                        if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(Circle())
+                        } else if !user.photoURL.isEmpty, let url = URL(string: user.photoURL) {
                             AsyncImage(url: url) { phase in
                                 if let image = phase.image {
                                     image
@@ -52,6 +94,25 @@ struct SettingPage: View {
                                 .resizable()
                                 .frame(width: 80, height: 80)
                                 .foregroundColor(.gray)
+                        }
+
+                        if isEditing {
+                            PhotosPicker(
+                                selection: $selectedItem,
+                                matching: .images,
+                                photoLibrary: .shared()) {
+                                    Text("Select Profile Image")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                                .onChange(of: selectedItem) { newItem in
+                                    Task {
+                                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                            selectedImageData = data
+                                            uploadProfileImageAndSaveURL(data: data)
+                                        }
+                                    }
+                                }
                         }
                         
                         Text(user.displayName)

@@ -15,17 +15,22 @@ struct WeedApp: App {
     @AppStorage("ageConfirmed") private var ageConfirmed = false
     @AppStorage("onboardComplete") private var onboardComplete = false
 
+    @StateObject private var cartManager = CartManager() // ✅ เพิ่มตรงนี้
+    
     var body: some Scene {
         WindowGroup {
             if !ageConfirmed {
                 AgeConfirmationView()
                   .environmentObject(authVM)
+                  .environmentObject(cartManager) // ✅ inject
             } else if !onboardComplete {
                 OnboardingView()
                   .environmentObject(authVM)
+                  .environmentObject(cartManager) // ✅ inject
             } else {
                 MainView()
                   .environmentObject(authVM)
+                  .environmentObject(cartManager) // ✅ inject
             }
         }
     }
