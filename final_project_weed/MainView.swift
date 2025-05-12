@@ -17,7 +17,7 @@ struct MainView: View {
                 LoginView()
             } else {
                 // Signed in → show strains list
-                GreenCartHomePage()
+                HomePage()
             }
         }
     }

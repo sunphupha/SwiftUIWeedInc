@@ -28,20 +28,34 @@ struct Strain: Identifiable, Codable {
 
 class StrainsViewModel: ObservableObject {
     @Published var strains: [Strain] = []
+    @Published var allStrains: [Strain] = []
+    @Published var isFiltering: Bool = false
     private let db = Firestore.firestore()
     
     func fetchStrains() {
         db.collection("strains")
+          .limit(to: 10)
           .getDocuments { snap, error in
             if let error = error {
               print("❌ fetch error:", error)
               return
             }
-            self.strains = snap?.documents.compactMap {
-              try? $0.data(as: Strain.self)
-            } ?? []
-            print("✅ Loaded \(self.strains.count) strains")
+            let list = snap?.documents.compactMap { try? $0.data(as: Strain.self) } ?? []
+            DispatchQueue.main.async {
+                self.allStrains = list
+                self.strains = list
+            }
         }
     }
+    
+    /// Filter the current list by a given effect; pass nil to clear filtering.
+    func filterStrains(by effect: String?) {
+        guard let eff = effect, !eff.isEmpty else {
+            isFiltering = false
+            strains = allStrains
+            return
+        }
+        isFiltering = true
+        strains = allStrains.filter { $0.effect.contains(eff) }
+    }
 }
-
