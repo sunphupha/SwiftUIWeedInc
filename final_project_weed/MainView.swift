@@ -17,7 +17,20 @@ struct MainView: View {
                 LoginView()
             } else {
                 // Signed in → show strains list
-                HomePage()
+                TabView {
+                    HomePage()
+                        .tabItem {
+                            Label("Home", systemImage: "house")
+                        }
+                    DiaryPage()
+                        .tabItem {
+                            Label("Diary", systemImage: "book")
+                        }
+                    SettingPage()
+                        .tabItem {
+                            Label("Setting", systemImage: "gearshape")
+                        }
+                }
             }
         }
     }

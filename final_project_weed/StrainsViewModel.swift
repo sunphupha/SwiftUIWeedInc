@@ -34,7 +34,6 @@ class StrainsViewModel: ObservableObject {
     
     func fetchStrains() {
         db.collection("strains")
-          .limit(to: 10)
           .getDocuments { snap, error in
             if let error = error {
               print("❌ fetch error:", error)
