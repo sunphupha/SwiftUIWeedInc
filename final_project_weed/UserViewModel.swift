@@ -26,7 +26,11 @@ class UserViewModel: ObservableObject {
                 let photoURL = data?["photoURL"] as? String ?? ""
                 
                 DispatchQueue.main.async {
-                    self.user = UserModel(id: uid, displayName: name, email: email, photoURL: photoURL)
+                    let passwordEncrypted = data?["passwordEncrypted"] as? String ?? "********"
+                    let phone = data?["phone"] as? String ?? "-"
+                    let favorites = data?["favorites"] as? [String] ?? []
+
+                    self.user = UserModel(id: uid, displayName: name, email: email, photoURL: photoURL, passwordEncrypted: passwordEncrypted, phone: phone, favorites: favorites)
                 }
             } else {
                 print("Document does not exist")

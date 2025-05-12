@@ -12,4 +12,7 @@ struct UserModel: Identifiable {
     var displayName: String
     var email: String
     var photoURL: String
+    var passwordEncrypted: String
+    var phone: String
+    var favorites: [String]
 }
