@@ -44,8 +44,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
         #if DEBUG
         // DEBUG: reset onboarding/age flags for testing
-        UserDefaults.standard.removeObject(forKey: "ageConfirmed")
-        UserDefaults.standard.removeObject(forKey: "onboardComplete")
+//        UserDefaults.standard.removeObject(forKey: "ageConfirmed")
+//        UserDefaults.standard.removeObject(forKey: "onboardComplete")
         #endif
         return true
     }
