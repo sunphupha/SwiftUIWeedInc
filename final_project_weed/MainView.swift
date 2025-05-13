@@ -22,13 +22,13 @@ struct MainView: View {
                         .tabItem {
                             Label("Home", systemImage: "house")
                         }
-                    DiaryPage()
+                    DiaryListView()
                         .tabItem {
                             Label("Diary", systemImage: "book")
                         }
-                    SettingPage()
+                    UserPage()
                         .tabItem {
-                            Label("Setting", systemImage: "gearshape")
+                            Label("User", systemImage: "gearshape")
                         }
                 }
             }

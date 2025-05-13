@@ -29,8 +29,8 @@ struct WeedApp: App {
                   .environmentObject(cartManager) // ✅ inject
             } else {
                 MainView()
-                  .environmentObject(authVM)
-                  .environmentObject(cartManager) // ✅ inject
+                    .environmentObject(authVM)
+                    .environmentObject(cartManager) // ✅ inject
             }
         }
     }

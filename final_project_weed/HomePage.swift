@@ -44,7 +44,7 @@ struct HomePage: View {
     let effectOptions = ["Relaxing", "Happy", "Euphoric", "Creative",  "Energizing", "Focused", "Stress-relieving", "Pain-relieving"]
     @EnvironmentObject var cartManager: CartManager
     @EnvironmentObject var authVM: AuthViewModel
-    @State private var quantities: [String: Double] = [:]
+    // Removed quantities state since Stepper is gone
     
     var body: some View {
         NavigationView {
@@ -158,7 +158,6 @@ struct HomePage: View {
 
                 VStack(spacing: 16) {
                     ForEach(filteredStrains) { strain in
-                        let qty = quantities[strain.id!] ?? 3.5
                         NavigationLink(destination: StrainDetailView(strain: strain)) {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(alignment: .top, spacing: 16) {
@@ -181,21 +180,20 @@ struct HomePage: View {
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         // 2. ชื่อและปุ่มตะกร้า/หัวใจในแนวตั้ง
-                                        HStack {
-                                            Text(strain.name)
+                                        HStack(alignment: .center, spacing: 8) {             Text(strain.name)
                                                 .font(.headline)
                                             Spacer()
-                                            Stepper(value: Binding(
-                                                get: { quantities[strain.id!] ?? 3.5 },
-                                                set: { quantities[strain.id!] = $0 }
-                                            ), in: 3.5...28, step: 3.5) {
-                                                Text("\(quantities[strain.id!] ?? 3.5, specifier: "%.1f") g")
-                                                    .font(.subheadline)
-                                            }
-                                            .frame(width: 120)
-
+//                                            Stepper(value: Binding(
+//                                                get: { quantities[strain.id!] ?? 3.5 },
+//                                                set: { quantities[strain.id!] = $0 }
+//                                            ), in: 3.5...28, step: 3.5) {
+//                                                Text("\(quantities[strain.id!] ?? 3.5, specifier: "%.1f") g")
+//                                                    .font(.subheadline)
+//                                            }
+//                                            .frame(width: 120)
+                                            // Only the cart button remains
                                             Button {
-                                                let grams = quantities[strain.id!] ?? 3.5
+                                                let grams = 3.5
                                                 cartManager.add(strain, quantity: grams)
                                             } label: {
                                                 let count = cartManager.items.filter { $0.0.id == strain.id }.reduce(0) { $0 + Int($1.1 / 3.5) }
@@ -331,6 +329,13 @@ struct HomePage: View {
     struct CartPage: View {
         @EnvironmentObject var cartManager: CartManager
 
+        // Total price of cart items
+        private var cartTotal: Double {
+            cartManager.items
+                .map { let perGram = $0.0.price / 3.5; return perGram * $0.1 }
+                .reduce(0, +)
+        }
+
         var body: some View {
             VStack(alignment: .leading) {
                 Text("Your Cart")
@@ -364,6 +369,15 @@ struct HomePage: View {
                                     .font(.headline)
                                 Text("Qty: \(qty, specifier: "%.1f") g")
                                     .font(.subheadline)
+                                
+//                                Text(String(format: "฿ %.0f", item.price))
+                                // Calculate per-gram price from default pack (3.5 g)
+                                let perGram = item.price / 3.5
+                                let total = perGram * qty
+                                Text(String(format: "฿ %.0f", total))
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                
                                 Stepper(value: Binding(
                                     get: { qty },
                                     set: { cartManager.update(item, quantity: $0) }
@@ -380,16 +394,29 @@ struct HomePage: View {
                                     .foregroundColor(.gray)
                             }
 
-                            Spacer()
+                        }
+                        .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 cartManager.remove(item)
                             } label: {
-                                Image(systemName: "trash")
+                                Text("Delete")
                             }
                         }
                         .padding(.vertical, 8)
                     }
                 }
+
+                // Display cart total
+                HStack {
+                    Text("Total:")
+                        .font(.headline)
+                    Spacer()
+                    Text("฿\(cartTotal, specifier: "%.2f")")
+                        .font(.headline)
+                }
+                .padding(.horizontal)
+
+                // (Assuming the Checkout button and other elements follow here)
             }
         }
     }
@@ -399,3 +426,5 @@ struct HomePage: View {
         .environmentObject(CartManager())
         .environmentObject(AuthViewModel())
 }
+
+//เหลือแสดงราคาคา
