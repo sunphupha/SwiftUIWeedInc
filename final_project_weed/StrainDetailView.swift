@@ -1,248 +1,265 @@
-//
-//  StrainDetailView.swift
-//  final_project_weed
-//
-//  Created by Sun Phupha on 13/5/2568 BE.
-//
-
+import Foundation
+import Firebase
 import SwiftUI
 
-// Note: Strain model and CartViewModel singleton are assumed to be defined elsewhere.
-// Strain model should have properties:
-//   name: String
-//   type: String
-//   price: Double
-//   THC_min: Double
-//   THC_max: Double
-//   CBD_min: Double
-//   CBD_max: Double
-//   parents: String
-//   smell: String
-//   description: String
-//   imageURLs: [String]
-
-// Note: ReviewViewModel and review model are assumed to be defined elsewhere.
-
 struct StrainDetailView: View {
-    @Environment(\.presentationMode) var presentationMode
-    
-    var strain: Strain
-    
-    @State private var quantity: Double = 3.5
-    @State private var isFavorited: Bool = false
-    @State private var showBuyNowAlert: Bool = false
-    
     @StateObject private var reviewVM = ReviewViewModel()
+    @Environment(\.presentationMode) var presentationMode
+    @State private var quantity: Double = 3.5
+    @State private var isFavorited = false
+    @State private var showBuyNowAlert = false
+    let strain: Strain
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Top bar
+            VStack(spacing: 12) {
+                // 1) Top navigation
                 HStack {
-                    Button(action: {
-                        presentationMode.wrappedValue.dismiss()
-                    }) {
+                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
                         Image(systemName: "chevron.left")
                             .font(.title2)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.black)
                     }
                     Spacer()
                     Button(action: {
-                        // Cart action (not specified)
+                        // TODO: navigate to cart
                     }) {
-                        Image(systemName: "cart")
+                        Image(systemName: "cart.fill")
                             .font(.title2)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.black)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top)
-                
-                // Carousel
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+
+                // 2) Hero image
                 TabView {
-                    // Use both flower and background URLs
-                    let galleryURLs = [strain.image_url, strain.main_url]
-                    ForEach(galleryURLs, id: \.self) { urlString in
-                        AsyncImage(url: URL(string: urlString)) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(maxWidth: .infinity, maxHeight: 250)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(height: 250)
-                                    .clipped()
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 250)
-                                    .foregroundColor(.gray)
-                            @unknown default:
-                                EmptyView()
-                            }
+                    AsyncImage(url: URL(string: strain.main_url)) { phase in
+                        switch phase {
+                        case .empty:
+                            Color.gray.opacity(0.2)
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            Image(systemName: "photo").resizable().scaledToFit()
+                        @unknown default:
+                            EmptyView()
                         }
                     }
+                    .tag(0)
+                    AsyncImage(url: URL(string: strain.image_url)) { phase in
+                        switch phase {
+                        case .empty:
+                            Color.gray.opacity(0.2)
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .failure:
+                            Image(systemName: "photo").resizable().scaledToFit()
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    .tag(1)
                 }
-                .frame(height: 250)
+                .frame(height: 260)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
                 .tabViewStyle(PageTabViewStyle())
                 
-                // Badge for type
-                Text(strain.type)
-                    .font(.caption)
-                    .bold()
-                    .padding(8)
-                    .background(Circle().fill(Color.green.opacity(0.2)))
-                    .foregroundColor(.green)
+                // 3) Title + type badge
+                HStack(alignment: .firstTextBaseline) {
+                    Text(strain.name)
+                        .font(.title2).bold()
+                    Spacer()
+                    Text(strain.type)
+                        .font(.subheadline).bold()
+                        .padding(.vertical, 4).padding(.horizontal, 8)
+                        .background(Color("AccentGreen").opacity(0.2))
+                        .foregroundColor(Color("AccentGreen"))
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 16)
                 
-                // Name
-                Text(strain.name)
-                    .font(.title)
-                    .bold()
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                // New: Potency and Smell capsules
+                HStack(spacing: 8) {
+                    Text(String(
+                        format: "THC: %.1f–%.1f%%   CBD: %.1f–%.1f%%",
+                        strain.THC_min, strain.THC_max,
+                        strain.CBD_min, strain.CBD_max
+                    ))
+                        .font(.subheadline)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color("AccentGreen").opacity(0.1))
+                        .foregroundColor(.primary)
+                        .clipShape(Capsule())
+                    
+                    Text("Smell: " + strain.smell_flavour.joined(separator: ", "))
+                        .font(.subheadline)
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color("AccentGreen").opacity(0.1))
+                        .foregroundColor(.primary)
+                        .clipShape(Capsule())
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
                 
-                // Price line
-                Text("\(strain.price, specifier: "%.0f")฿ / \(quantity, specifier: "%.1f")g")
-                    .font(.headline)
-                    .padding(.horizontal)
+                // 4) Price & pack size
+                HStack {
+                    Text("$\(Int(strain.price))")
+                        .font(.headline)
+                    Spacer()
+                    Text("Pack: 500 ฿ / \(Int(quantity)) g")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 16)
                 
-                // THC and CBD line
-                Text("THC: \(strain.THC_min, specifier: "%.1f") - \(strain.THC_max, specifier: "%.1f")  CBD: \(strain.CBD_min, specifier: "%.1f") - \(strain.CBD_max, specifier: "%.1f")")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
+                /*
+                // 5) Potency + aroma
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("THC").font(.caption).foregroundColor(.secondary)
+                        Text("\(strain.THC_min, specifier: "%.0f")–\(strain.THC_max, specifier: "%.0f")%")
+                            .font(.subheadline)
+                    }
+                    Divider().frame(height: 36)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("CBD").font(.caption).foregroundColor(.secondary)
+                        Text("\(strain.CBD_min, specifier: "%.1f")–\(strain.CBD_max, specifier: "%.1f")%")
+                            .font(.subheadline)
+                    }
+                    Divider().frame(height: 36)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Smell").font(.caption).foregroundColor(.secondary)
+                        Text(strain.smell_flavour.joined(separator: ", "))
+                            .font(.subheadline)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                */
                 
-                // Parents
+                // 6) Parents
                 HStack {
                     Text("Parents:")
-                        .bold()
+                        .font(.subheadline).bold()
                     Text(strain.parents.joined(separator: " × "))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                     Spacer()
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
                 
-                // Smell
-                HStack {
-                    Text("Smell:")
-                        .bold()
-                    Text(strain.smell_flavour.joined(separator: ", "))
-                    Spacer()
-                }
-                .padding(.horizontal)
-                
-                // Quantity selector
-                HStack(spacing: 20) {
-                    Button(action: {
-                        if quantity > 3.5 {
-                            quantity -= 3.5
-                        }
-                    }) {
-                        Image(systemName: "minus.circle")
-                            .font(.title2)
-                    }
-                    Text("\(quantity, specifier: "%.1f") g")
-                        .font(.headline)
-                        .frame(minWidth: 80)
-                    Button(action: {
-                        if quantity < 28.0 {
-                            quantity += 3.5
-                        }
-                    }) {
-                        Image(systemName: "plus.circle")
-                            .font(.title2)
-                    }
-                }
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                
-                // Favorite button
-                Button(action: {
-                    isFavorited.toggle()
-                }) {
-                    Image(systemName: isFavorited ? "heart.fill" : "heart")
-                        .font(.title)
-                        .foregroundColor(isFavorited ? .red : .gray)
-                }
-                
-                // Add to Cart and Buy Now buttons
-//                HStack(spacing: 20) {
-//                    Button(action: {
-//                        CartViewModel.shared.add(strain: strain, quantity: quantity)
-//                    }) {
-//                        Text("Add to Cart")
-//                            .font(.headline)
-//                            .foregroundColor(.white)
-//                            .padding()
-//                            .frame(maxWidth: .infinity)
-//                            .background(Color.blue)
-//                            .cornerRadius(10)
-//                    }
-//                    Button(action: {
-//                        showBuyNowAlert = true
-//                    }) {
-//                        Text("Buy Now")
-//                            .font(.headline)
-//                            .foregroundColor(.white)
-//                            .padding()
-//                            .frame(maxWidth: .infinity)
-//                            .background(Color.orange)
-//                            .cornerRadius(10)
-//                    }
-//                }
-//                .padding(.horizontal)
-                
-                // DisclosureGroups
-                DisclosureGroup("Details") {
-                    Text(strain.description)
-                        .padding(.top, 5)
-                        .padding(.bottom, 10)
-                }
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                
-                DisclosureGroup("Reviews") {
-                    if reviewVM.reviews.isEmpty {
-                        Text("No reviews yet.")
-                            .foregroundColor(.secondary)
-                            .padding(.top, 5)
-                            .padding(.bottom, 10)
-                    } else {
-                        ForEach(reviewVM.reviews) { review in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(review.reviewerName)
-                                    .font(.headline)
-                                Text(review.comment)
-                                    .font(.body)
+                // 7) Quantity selector + favorite
+                HStack(spacing: 16) {
+                    // Quantity selector
+                    HStack {
+                        Button(action: {
+                            if quantity > 3.5 {
+                                quantity -= 3.5
                             }
-                            .padding(.vertical, 5)
-                            Divider()
+                        }) {
+                            Image(systemName: "minus")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+                        Spacer()
+                        Text(String(format: "%.1f g", quantity))
+                            .font(.subheadline)
+                            .foregroundColor(.primary)
+                        Spacer()
+                        Button(action: {
+                            if quantity < 28 {
+                                quantity += 3.5
+                            }
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(maxWidth: .infinity)
+
+                    // Favorite button
+                    Button(action: {
+                        isFavorited.toggle()
+                    }) {
+                        Image(systemName: isFavorited ? "heart.fill" : "heart")
+                            .font(.title3)
+                            .foregroundColor(isFavorited ? .red : .secondary)
+                            .padding(12)
+                            .background(Color(.systemGray6))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(.horizontal, 16)
+                
+                // 8) Add to Cart & Buy Now
+                HStack(spacing: 12) {
+                    Button("Add to Cart") {
+                        // TODO: add to cart
+                    }
+                    .font(.subheadline).bold()
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color("AccentGreen"))
+                    .cornerRadius(10)
+                    
+                    Button("Buy Now") {
+                        showBuyNowAlert = true
+                    }
+                    .font(.subheadline).bold()
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color("AccentGreen"))
+                    .cornerRadius(10)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                
+                // 9) Details & Reviews
+                Group {
+                    DisclosureGroup("Details") {
+                        Text(strain.description).font(.body).padding(.top, 8)
+                    }
+                    DisclosureGroup("Reviews") {
+                        if reviewVM.reviews.isEmpty {
+                            Text("No reviews yet").foregroundColor(.secondary)
+                        } else {
+                            ForEach(reviewVM.reviews) { rv in
+                                HStack {
+                                    Text(rv.comment).font(.body)
+                                    Spacer()
+                                    Text("\(rv.rating)★").foregroundColor(Color("AccentGreen"))
+                                }
+                                .padding(.vertical, 4)
+                                Divider()
+                            }
                         }
                     }
                 }
                 .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(10)
-                .padding(.horizontal)
+                .background(Color.gray.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
                 
                 Spacer(minLength: 20)
             }
+            .alert("Buy Now", isPresented: $showBuyNowAlert) {
+                Button("Confirm") { /* handle buy */ }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Proceed to buy \(strain.name) \(quantity, specifier: "%.1f")g?")
+            }
         }
-        .alert(isPresented: $showBuyNowAlert) {
-            Alert(
-                title: Text("Buy Now"),
-                message: Text("Proceed to buy \(strain.name) \(quantity, specifier: "%.1f")g?"),
-                primaryButton: .default(Text("Confirm")) {
-                    // Implement buy now action here
-                },
-                secondaryButton: .cancel()
-            )
-        }
+        .navigationBarBackButtonHidden(true)
     }
 }

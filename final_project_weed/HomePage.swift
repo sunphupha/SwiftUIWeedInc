@@ -171,7 +171,11 @@ struct HomePage: View {
                                                 cartManager.add(strain)
                                             } label: {
                                                 Image(systemName: "cart.fill")
-                                                    .foregroundColor(.green)
+                                                    .foregroundColor(
+                                                        cartManager.items.contains(where: { $0.id == strain.id })
+                                                        ? .green
+                                                        : .gray
+                                                    )
                                             }
                                         }
 
@@ -279,6 +283,13 @@ struct HomePage: View {
 
     struct CartPage: View {
         @EnvironmentObject var cartManager: CartManager
+        
+        private func removeItems(at offsets: IndexSet) {
+            for index in offsets {
+                let item = cartManager.items[index]
+                cartManager.remove(item)
+            }
+        }
 
         var body: some View {
             VStack(alignment: .leading) {
@@ -320,16 +331,15 @@ struct HomePage: View {
                             }
 
                             Spacer()
-
-                            // Remove button
-                            Button {
+                        }
+                        .padding(.vertical, 8)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
                                 cartManager.remove(item)
                             } label: {
                                 Image(systemName: "trash")
-                                    .foregroundColor(.red)
                             }
                         }
-                        .padding(.vertical, 8)
                     }
                 }
             }
