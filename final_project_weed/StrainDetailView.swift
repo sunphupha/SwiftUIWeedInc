@@ -6,8 +6,10 @@ struct StrainDetailView: View {
     @StateObject private var reviewVM = ReviewViewModel()
     @Environment(\.presentationMode) var presentationMode
     @State private var quantity: Double = 3.5
-    @State private var isFavorited = false
-    @State private var showBuyNowAlert = false
+    @State private var showBuyNowAlert: Bool = false
+    @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var cartManager: CartManager
+    @State private var didAddToCart = false
     let strain: Strain
     
     var body: some View {
@@ -21,9 +23,7 @@ struct StrainDetailView: View {
                             .foregroundColor(.black)
                     }
                     Spacer()
-                    Button(action: {
-                        // TODO: navigate to cart
-                    }) {
+                    NavigationLink(destination: CartPage()) {
                         Image(systemName: "cart.fill")
                             .font(.title2)
                             .foregroundColor(.black)
@@ -52,7 +52,10 @@ struct StrainDetailView: View {
                         case .empty:
                             Color.gray.opacity(0.2)
                         case .success(let image):
-                            image.resizable().scaledToFill()
+                            image
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: .infinity, maxHeight: 260)
                         case .failure:
                             Image(systemName: "photo").resizable().scaledToFit()
                         @unknown default:
@@ -81,8 +84,8 @@ struct StrainDetailView: View {
                 }
                 .padding(.horizontal, 16)
                 
-                // New: Potency and Smell capsules
-                HStack(spacing: 8) {
+                // New: Potency capsule
+                HStack {
                     Text(String(
                         format: "THC: %.1f–%.1f%%   CBD: %.1f–%.1f%%",
                         strain.THC_min, strain.THC_max,
@@ -94,7 +97,12 @@ struct StrainDetailView: View {
                         .background(Color("AccentGreen").opacity(0.1))
                         .foregroundColor(.primary)
                         .clipShape(Capsule())
-                    
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+
+                // New: Smell capsule
+                HStack {
                     Text("Smell: " + strain.smell_flavour.joined(separator: ", "))
                         .font(.subheadline)
                         .padding(.vertical, 6)
@@ -102,7 +110,6 @@ struct StrainDetailView: View {
                         .background(Color("AccentGreen").opacity(0.1))
                         .foregroundColor(.primary)
                         .clipShape(Capsule())
-                    
                     Spacer()
                 }
                 .padding(.horizontal, 16)
@@ -190,11 +197,11 @@ struct StrainDetailView: View {
 
                     // Favorite button
                     Button(action: {
-                        isFavorited.toggle()
+                        authVM.toggleFavorite(strainId: strain.id!)
                     }) {
-                        Image(systemName: isFavorited ? "heart.fill" : "heart")
+                        Image(systemName: authVM.favorites.contains(strain.id!) ? "heart.fill" : "heart")
                             .font(.title3)
-                            .foregroundColor(isFavorited ? .red : .secondary)
+                            .foregroundColor(authVM.favorites.contains(strain.id!) ? .red : .secondary)
                             .padding(12)
                             .background(Color(.systemGray6))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -205,21 +212,32 @@ struct StrainDetailView: View {
                 // 8) Add to Cart & Buy Now
                 HStack(spacing: 12) {
                     Button("Add to Cart") {
-                        // TODO: add to cart
+                        // Animate flash
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            didAddToCart = true
+                        }
+                        // Add to cart with quantity
+                        cartManager.add(strain, quantity: quantity)
+                        // Reset animation state
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                didAddToCart = false
+                            }
+                        }
                     }
                     .font(.subheadline).bold()
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Color("AccentGreen"))
+                    .background(didAddToCart ? Color.green : Color.gray.opacity(0.2))
                     .cornerRadius(10)
                     
                     Button("Buy Now") {
                         showBuyNowAlert = true
                     }
                     .font(.subheadline).bold()
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Color("AccentGreen"))
+                    .background(Color.gray.opacity(0.2))
                     .cornerRadius(10)
                 }
                 .padding(.horizontal, 16)

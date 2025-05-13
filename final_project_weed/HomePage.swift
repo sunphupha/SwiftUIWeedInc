@@ -12,14 +12,29 @@ import FirebaseCore
 import FirebaseStorage
 
 class CartManager: ObservableObject {
-    @Published var items: [Strain] = []
+    // Now stores tuples of (Strain, Double)
+    @Published var items: [(Strain, Double)] = []
 
-    func add(_ item: Strain) {
-        items.append(item)
+    func add(_ item: Strain, quantity: Double) {
+        if let idx = items.firstIndex(where: { $0.0.id == item.id }) {
+            items[idx].1 += quantity
+        } else {
+            items.append((item, quantity))
+        }
     }
 
     func remove(_ item: Strain) {
-        items.removeAll { $0.id == item.id }
+        items.removeAll { $0.0.id == item.id }
+    }
+
+    func update(_ item: Strain, quantity: Double) {
+        if let idx = items.firstIndex(where: { $0.0.id == item.id }) {
+            if quantity <= 0 {
+                remove(item)
+            } else {
+                items[idx].1 = quantity
+            }
+        }
     }
 }
 
@@ -28,6 +43,8 @@ struct HomePage: View {
     @State private var selectedEffect: String? = nil
     let effectOptions = ["Relaxing", "Happy", "Euphoric", "Creative",  "Energizing", "Focused", "Stress-relieving", "Pain-relieving"]
     @EnvironmentObject var cartManager: CartManager
+    @EnvironmentObject var authVM: AuthViewModel
+    @State private var quantities: [String: Double] = [:]
     
     var body: some View {
         NavigationView {
@@ -141,6 +158,7 @@ struct HomePage: View {
 
                 VStack(spacing: 16) {
                     ForEach(filteredStrains) { strain in
+                        let qty = quantities[strain.id!] ?? 3.5
                         NavigationLink(destination: StrainDetailView(strain: strain)) {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(alignment: .top, spacing: 16) {
@@ -162,20 +180,39 @@ struct HomePage: View {
                                     }
 
                                     VStack(alignment: .leading, spacing: 4) {
-                                        // 2. ชื่อและปุ่มตะกร้า
+                                        // 2. ชื่อและปุ่มตะกร้า/หัวใจในแนวตั้ง
                                         HStack {
                                             Text(strain.name)
                                                 .font(.headline)
                                             Spacer()
+                                            Stepper(value: Binding(
+                                                get: { quantities[strain.id!] ?? 3.5 },
+                                                set: { quantities[strain.id!] = $0 }
+                                            ), in: 3.5...28, step: 3.5) {
+                                                Text("\(quantities[strain.id!] ?? 3.5, specifier: "%.1f") g")
+                                                    .font(.subheadline)
+                                            }
+                                            .frame(width: 120)
+
                                             Button {
-                                                cartManager.add(strain)
+                                                let grams = quantities[strain.id!] ?? 3.5
+                                                cartManager.add(strain, quantity: grams)
                                             } label: {
-                                                Image(systemName: "cart.fill")
-                                                    .foregroundColor(
-                                                        cartManager.items.contains(where: { $0.id == strain.id })
-                                                        ? .green
-                                                        : .gray
-                                                    )
+                                                let count = cartManager.items.filter { $0.0.id == strain.id }.reduce(0) { $0 + Int($1.1 / 3.5) }
+                                                ZStack(alignment: .topTrailing) {
+                                                    Image(systemName: "cart.fill")
+                                                        .font(.title2)
+                                                        .foregroundColor(count > 0 ? .green : .gray)
+                                                    if count > 0 {
+                                                        Text("\(count)")
+                                                            .font(.caption2)
+                                                            .foregroundColor(.white)
+                                                            .padding(4)
+                                                            .background(Color.green)
+                                                            .clipShape(Circle())
+                                                            .offset(x: 8, y: -8)
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -184,10 +221,20 @@ struct HomePage: View {
                                             .font(.subheadline)
                                             .foregroundColor(.gray)
 
-                                        // 4. Smell (ล่าง)
-                                        Text("Smell: " + strain.smell_flavour.joined(separator: ", "))
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
+                                        // 4. Smell (ล่าง) with heart button
+                                        HStack {
+                                            Text("Smell: " + strain.smell_flavour.joined(separator: ", "))
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                            Spacer()
+                                            Button(action: {
+                                                authVM.toggleFavorite(strainId: strain.id!)
+                                            }) {
+                                                Image(systemName: authVM.favorites.contains(strain.id!) ? "heart.fill" : "heart")
+                                                    .foregroundColor(authVM.favorites.contains(strain.id!) ? .red : .gray)
+                                                    .font(.title3)
+                                            }
+                                        }
 
                                         // 5. Tags (effect) เป็นกรอบๆ
                                         ScrollView(.horizontal, showsIndicators: false) {
@@ -283,13 +330,6 @@ struct HomePage: View {
 
     struct CartPage: View {
         @EnvironmentObject var cartManager: CartManager
-        
-        private func removeItems(at offsets: IndexSet) {
-            for index in offsets {
-                let item = cartManager.items[index]
-                cartManager.remove(item)
-            }
-        }
 
         var body: some View {
             VStack(alignment: .leading) {
@@ -298,7 +338,7 @@ struct HomePage: View {
                     .padding()
 
                 List {
-                    ForEach(cartManager.items) { item in
+                    ForEach(cartManager.items, id: \.0.id) { item, qty in
                         HStack(alignment: .top, spacing: 16) {
                             // Thumbnail
                             AsyncImage(url: URL(string: item.main_url)) { phase in
@@ -322,6 +362,16 @@ struct HomePage: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.name)
                                     .font(.headline)
+                                Text("Qty: \(qty, specifier: "%.1f") g")
+                                    .font(.subheadline)
+                                Stepper(value: Binding(
+                                    get: { qty },
+                                    set: { cartManager.update(item, quantity: $0) }
+                                ), in: 0...28, step: 3.5) {
+                                    Text("Adjust: \(qty, specifier: "%.1f") g")
+                                        .font(.caption)
+                                }
+                                .frame(width: 180)
                                 Text("THC: \(String(format: "%.1f–%.1f", item.THC_min, item.THC_max))  CBD: \(String(format: "%.1f–%.1f", item.CBD_min, item.CBD_max))")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
@@ -331,15 +381,13 @@ struct HomePage: View {
                             }
 
                             Spacer()
-                        }
-                        .padding(.vertical, 8)
-                        .swipeActions(edge: .trailing) {
                             Button(role: .destructive) {
                                 cartManager.remove(item)
                             } label: {
                                 Image(systemName: "trash")
                             }
                         }
+                        .padding(.vertical, 8)
                     }
                 }
             }
@@ -347,5 +395,7 @@ struct HomePage: View {
     }
 //
 #Preview {
-    HomePage().environmentObject(CartManager())
+    HomePage()
+        .environmentObject(CartManager())
+        .environmentObject(AuthViewModel())
 }

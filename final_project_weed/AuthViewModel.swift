@@ -4,6 +4,7 @@ import FirebaseFirestore
 
 class AuthViewModel: ObservableObject {
     @Published var user: User?   // FirebaseAuth.User
+    @Published var favorites: [String] = []
 
     private let auth = Auth.auth()
     private let db   = Firestore.firestore()
@@ -13,6 +14,7 @@ class AuthViewModel: ObservableObject {
         auth.addStateDidChangeListener { [weak self] _, user in
             self?.user = user
             if let u = user {
+                self?.fetchFavorites(uid: u.uid)
                 self?.createUserProfileIfNeeded(
                     uid: u.uid,
                     email: u.email,
@@ -87,6 +89,29 @@ class AuthViewModel: ObservableObject {
                     "lastLogin": FieldValue.serverTimestamp()
                 ])
             }
+        }
+    }
+
+    // MARK: - Favorites
+    private func fetchFavorites(uid: String) {
+        db.collection("users")
+          .document(uid)
+          .addSnapshotListener { [weak self] snap, _ in
+              guard let data = snap?.data(),
+                    let favs = data["favorites"] as? [String] else { return }
+              DispatchQueue.main.async {
+                  self?.favorites = favs
+              }
+          }
+    }
+
+    func toggleFavorite(strainId: String) {
+        guard let uid = auth.currentUser?.uid else { return }
+        let userRef = db.collection("users").document(uid)
+        if favorites.contains(strainId) {
+            userRef.updateData(["favorites": FieldValue.arrayRemove([strainId])])
+        } else {
+            userRef.updateData(["favorites": FieldValue.arrayUnion([strainId])])
         }
     }
 }
