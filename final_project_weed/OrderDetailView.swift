@@ -13,6 +13,27 @@ struct OrderDetailView: View {
     @EnvironmentObject var authVM: AuthViewModel
     @State private var showPayment = false
 
+    // Build an Order object for payment
+    private var draftOrder: Order {
+        // Map each strain/quantity pair to OrderItem
+        let items = strainQuantities.map { entry in
+            OrderItem(
+                strainId: entry.strain.id ?? "",
+                quantity: entry.quantity,
+                price: (entry.strain.price / 3.5) * entry.quantity,
+                name: entry.strain.name
+            )
+        }
+        return Order(
+            id: nil,
+            userId: authVM.user?.uid ?? "",
+            items: items,
+            total: totalPrice,
+            orderDate: Date(),
+            status: "pending"
+        )
+    }
+
     // Unique strains in cart (without requiring Strain to be Hashable)
     private var uniqueStrains: [Strain] {
         var seenIds = Set<String>()
@@ -65,7 +86,7 @@ struct OrderDetailView: View {
             }
             .listStyle(.insetGrouped)
 
-            NavigationLink(destination: PaymentView(), isActive: $showPayment) {
+            NavigationLink(destination: PaymentPage(order: draftOrder), isActive: $showPayment) {
                 Button("Check Bill") {
                     showPayment = true
                 }

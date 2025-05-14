@@ -6,13 +6,27 @@
 //
 
 import Foundation
+import Firebase
+import FirebaseFirestore
 
-struct UserModel: Identifiable {
-    var id: String
-    var displayName: String
-    var email: String
-    var photoURL: String
-    var passwordEncrypted: String
-    var phone: String
-    var favorites: [String]
+struct UserModel: Identifiable, Codable {
+  @DocumentID var id: String?
+  var displayName: String
+  var email: String
+  var photoURL: String
+  var passwordEncrypted: String
+  var phone: String
+  var favorites: [String]
+  var paymentMethods: [PaymentMethod]
 }
+struct PaymentMethod: Identifiable, Codable {
+    var id: String
+    var brand: String
+    var last4: String
+    var expMonth: Int
+    var expYear: Int
+    var cardholderName: String
+    var token: String
+    var isDefault: Bool
+}
+

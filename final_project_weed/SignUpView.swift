@@ -1,4 +1,4 @@
-//
+
 //  SignUpView.swift
 //  final_project_weed
 //
@@ -30,7 +30,7 @@ struct SignUpView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemBackground)
+                Color(red: 255/255, green: 249/255, blue: 240/255)
                     .ignoresSafeArea()
                 VStack(spacing: 20) {
                     VStack(spacing: 4) {
@@ -46,22 +46,34 @@ struct SignUpView: View {
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(Color(.sRGB, red: 250/255, green: 247/255, blue: 239/255, opacity: 1))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 185/255, green: 152/255, blue: 125/255), lineWidth: 1)
+                            )
                             .focused($focusedField, equals: .email)
                             .submitLabel(.next)
                             .onSubmit { focusedField = .password }
                         SecureField("Password", text: $password)
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(Color(.sRGB, red: 250/255, green: 247/255, blue: 239/255, opacity: 1))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 185/255, green: 152/255, blue: 125/255), lineWidth: 1)
+                            )
                             .focused($focusedField, equals: .password)
                             .submitLabel(.next)
                             .onSubmit { focusedField = .confirm }
                         SecureField("Confirm Password", text: $confirmPassword)
                             .padding()
-                            .background(Color(.systemGray6))
+                            .background(Color(.sRGB, red: 250/255, green: 247/255, blue: 239/255, opacity: 1))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 185/255, green: 152/255, blue: 125/255), lineWidth: 1)
+                            )
                             .focused($focusedField, equals: .confirm)
                             .submitLabel(.go)
                             .onSubmit { createAccount() }
@@ -70,10 +82,10 @@ struct SignUpView: View {
                         createAccount()
                     } label: {
                         Text(isCreatingAccount ? "Creating Account..." : "Sign Up")
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(isFormValid ? Color.green : Color.green.opacity(0.5))
+                            .background(Color(red: 184/255, green: 224/255, blue: 194/255))
                             .cornerRadius(10)
                     }
                     .disabled(!isFormValid || isCreatingAccount)
@@ -82,7 +94,7 @@ struct SignUpView: View {
                         presentationMode.wrappedValue.dismiss()
                     }
                     .font(.footnote)
-                    .foregroundColor(.blue)
+                    .foregroundColor(Color(red: 184/255, green: 224/255, blue: 194/255))
                 }
                 .padding()
             }

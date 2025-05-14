@@ -7,12 +7,11 @@
 
 import SwiftUI
 import FirebaseAuth
-import FirebaseFirestore
 
 struct DiaryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authVM: AuthViewModel
-    @StateObject private var vm = DiaryViewModel()
+    @EnvironmentObject var vm: DiaryViewModel
     
     // Incoming diary for edit, or new placeholder
     @State var diary: Diary
@@ -114,7 +113,7 @@ struct DiaryDetailView: View {
         diary.rating = rating
         diary.notes = notes
         diary.userId = uid
-        vm.addDiary(diary)
+        vm.upsertDiary(diary)
         dismiss()
     }
 }

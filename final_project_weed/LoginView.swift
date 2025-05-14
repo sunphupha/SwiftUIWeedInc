@@ -37,15 +37,23 @@ struct LoginView: View {
                             .padding()
                             .background(Color(.sRGB, red: 250/255, green: 247/255, blue: 239/255, opacity: 1))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 185/255, green: 152/255, blue: 125/255), lineWidth: 1)
+                            )
                             .autocapitalization(.none)
                             .focused($focusedField, equals: .email)
                             .submitLabel(.next)
                             .onSubmit { focusedField = .password }
-                        
+
                         SecureField("Password", text: $password)
                             .padding()
                             .background(Color(.sRGB, red: 250/255, green: 247/255, blue: 239/255, opacity: 1))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color(red: 185/255, green: 152/255, blue: 125/255), lineWidth: 1)
+                            )
                             .focused($focusedField, equals: .password)
                             .submitLabel(.go)
                             .onSubmit { handleAuth() }
@@ -63,29 +71,29 @@ struct LoginView: View {
                         // No action specified
                     }) {
                         Text("Forget Your Password?")
-                            .foregroundColor(.green)
+                            .foregroundColor(Color(red: 184/255, green: 224/255, blue: 194/255))
                             .font(.footnote)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
                     Button(action: handleAuth) {
                         Text("Login")
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.green)
+                            .background(Color(red: 184/255, green: 224/255, blue: 194/255))
                             .cornerRadius(10)
                     }
                     
                     Button("Sign Up") {
                         showingSignUp = true
                     }
-                    .foregroundColor(.green)
+                    .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.green, lineWidth: 2)
+                            .stroke(Color.black, lineWidth: 2)
                     )
                     .sheet(isPresented: $showingSignUp) {
                         SignUpView()
@@ -94,7 +102,7 @@ struct LoginView: View {
                 }
                 .padding(.horizontal, 24)
             }
-            .background(Color(.systemBackground).ignoresSafeArea())
+            .background(Color(red: 255/255, green: 249/255, blue: 240/255).ignoresSafeArea())
         }
     }
 

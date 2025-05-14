@@ -30,7 +30,14 @@ class UserViewModel: ObservableObject {
                     let phone = data?["phone"] as? String ?? "-"
                     let favorites = data?["favorites"] as? [String] ?? []
 
-                    self.user = UserModel(id: uid, displayName: name, email: email, photoURL: photoURL, passwordEncrypted: passwordEncrypted, phone: phone, favorites: favorites)
+                    self.user = UserModel(id: uid,
+                                          displayName: name,
+                                          email: email,
+                                          photoURL: photoURL,
+                                          passwordEncrypted: passwordEncrypted,
+                                          phone: phone,
+                                          favorites: favorites,
+                                          paymentMethods: [])
                 }
             } else {
                 print("Document does not exist")

@@ -8,11 +8,13 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFirestore
 import PhotosUI
 import FirebaseStorage
 
 struct SettingPage: View {
-    @StateObject private var viewModel = UserViewModel()
+//    @StateObject private var viewModel = UserViewModel()
+    @EnvironmentObject var userVM: UserViewModel
     @State private var editableName = ""
     @State private var editablePhone = ""
     @State private var showSaveAlert = false
@@ -43,13 +45,15 @@ struct SettingPage: View {
                 guard let url = url else { return }
                 let db = Firestore.firestore()
                 db.collection("users").document(uid).updateData([
-                    "photoURL": url.absoluteString
+                    "photoURL": url.absoluteString,
+                    "photoUpdatedAt": FieldValue.serverTimestamp()
                 ]) { error in
                     if let error = error {
                         print("Failed to update Firestore with photoURL: \(error.localizedDescription)")
                     } else {
                         print("Profile image uploaded and URL saved.")
-                        viewModel.fetchUserData()
+//                        viewModel.fetchUserData()
+                        userVM.fetchUserData()
                     }
                 }
             }
@@ -69,7 +73,7 @@ struct SettingPage: View {
                     .bold()
                     .padding(.top)
                 
-                if let user = viewModel.user {
+                if let user = userVM.user   /*viewModel.user*/ {
                     VStack(spacing: 10) {
                         if let imageData = selectedImageData, let uiImage = UIImage(data: imageData) {
                             Image(uiImage: uiImage)
@@ -278,8 +282,8 @@ struct SettingPage: View {
                                             print("Error updating user: \(error)")
                                         } else {
                                             self.showSaveAlert = true
-                                            self.viewModel.user?.displayName = self.editableName
-                                            self.viewModel.user?.phone = self.editablePhone
+                                            self.userVM.user?.displayName = self.editableName
+                                            self.userVM.user?.phone = self.editablePhone
                                             isEditing = false
                                         }
                                     }
@@ -330,7 +334,8 @@ struct SettingPage: View {
                 } else {
                     ProgressView("Loading...")
                         .onAppear {
-                            viewModel.fetchUserData()
+                        userVM.fetchUserData()
+//                            viewModel.fetchUserData()
                         }
                 }
                 

@@ -10,6 +10,7 @@ import FirebaseCore
 
 @main
 struct WeedApp: App {
+    @StateObject var userVM = UserViewModel()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var authVM = AuthViewModel()
     @AppStorage("ageConfirmed") private var ageConfirmed = false
@@ -23,14 +24,23 @@ struct WeedApp: App {
                 AgeConfirmationView()
                   .environmentObject(authVM)
                   .environmentObject(cartManager) // ✅ inject
+                  .environmentObject(OrderViewModel())
+                  .environmentObject(PaymentViewModel())
+                  .environmentObject(DiaryViewModel())
             } else if !onboardComplete {
                 OnboardingView()
                   .environmentObject(authVM)
                   .environmentObject(cartManager) // ✅ inject
+                  .environmentObject(OrderViewModel())
+                  .environmentObject(PaymentViewModel())
+                  .environmentObject(DiaryViewModel())
             } else {
                 MainView()
                     .environmentObject(authVM)
                     .environmentObject(cartManager) // ✅ inject
+                    .environmentObject(OrderViewModel())
+                    .environmentObject(PaymentViewModel())
+                    .environmentObject(DiaryViewModel())
             }
         }
     }
@@ -44,8 +54,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
         #if DEBUG
         // DEBUG: reset onboarding/age flags for testing
-//        UserDefaults.standard.removeObject(forKey: "ageConfirmed")
-//        UserDefaults.standard.removeObject(forKey: "onboardComplete")
+        UserDefaults.standard.removeObject(forKey: "ageConfirmed")
+        UserDefaults.standard.removeObject(forKey: "onboardComplete")
         #endif
         return true
     }

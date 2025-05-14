@@ -7,7 +7,7 @@ class AuthViewModel: ObservableObject {
     @Published var favorites: [String] = []
 
     private let auth = Auth.auth()
-    private let db   = Firestore.firestore()
+private let db   = Firestore.firestore()
 
     init() {
         // ฟังการเปลี่ยนสถานะล็อกอิน/สมัคร
@@ -77,6 +77,7 @@ class AuthViewModel: ObservableObject {
                     "displayName"  : displayName ?? "",
                     "phone"        : "",
                     "photoURL"     : "",
+                    "passwordEncrypted": "",
                     "createdAt"    : FieldValue.serverTimestamp(),
                     "lastLogin"    : FieldValue.serverTimestamp(),
                     "favorites"    : [],

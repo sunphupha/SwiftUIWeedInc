@@ -416,7 +416,16 @@ struct HomePage: View {
                 }
                 .padding(.horizontal)
 
-                // (Assuming the Checkout button and other elements follow here)
+                // Checkout button
+                NavigationLink(destination: OrderDetailView()) {
+                    Text("Check Out")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.green)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                }
+                .padding()
             }
         }
     }

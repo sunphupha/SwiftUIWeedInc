@@ -8,6 +8,32 @@
 
 import SwiftUI
 
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
+
 struct AgeConfirmationView: View {
     // เก็บสถานะยืนยันอายุใน UserDefaults
     @AppStorage("ageConfirmed") private var ageConfirmed = false
@@ -20,16 +46,17 @@ struct AgeConfirmationView: View {
     
     var body: some View {
         ZStack {
-            // พื้นหลังสีอ่อน
-            Color.green.opacity(0.1)
+            // กำหนดสีพื้นหลังด้วยโค้ดสี HEX
+            Color(hex: "#B8E0C2")
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
                 Spacer()
                 
                 // โลโก้ + ชื่อแอป
-                Image(systemName: "leaf.arrow.circlepath")
+                Image("HClogo")
                   .resizable()
+                  .scaledToFit()
                   .frame(width: 60, height: 60)
                 Text("HerbCare")
                   .font(.largeTitle).bold()
@@ -87,23 +114,31 @@ struct AgeConfirmationView: View {
                 .padding(.horizontal)
                 
                 // ปุ่ม Confirm
-                Button("Confirm") {
-                  if validateAge() {
-                    ageConfirmed = true
-                  } else {
-                    showError = true
-                  }
+                HStack {
+                    Button("Confirm") {
+                        if validateAge() {
+                            ageConfirmed = true
+                        } else {
+                            showError = true
+                        }
+                    }
+//                    .frame(maxWidth: .infinity, minHeight: 44)
+//                    .buttonStyle(.borderedProminent)
+                    .disabled(!isChecked)
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .background(isChecked ? Color(hex: "#B8E0C2") : Color.gray.opacity(0.5))
+                    .foregroundColor(.black)
+                    .cornerRadius(10)
+                    .alert("You must be at least 20 years old to continue.", isPresented: $showError) {
+                        Button("OK", role: .cancel) {}
+                    }
                 }
-                .disabled(!isChecked)
-                .buttonStyle(.borderedProminent)
-                .alert("You must be at least 20 years old to continue.", isPresented: $showError) {
-                  Button("OK", role: .cancel) {}
-                }
+                .padding(.horizontal, 8)
                 
                 Spacer()
             }
-            .padding()
-            .background(Color.white)
+            // กำหนดสีการ์ดด้วยโค้ดสี HEX
+            .background(Color(hex: "#FFF9F0"))
             .cornerRadius(20)
             .padding(.horizontal, 32)
         }

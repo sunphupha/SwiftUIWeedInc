@@ -8,9 +8,8 @@
 import SwiftUI
 
 struct DiaryListView: View {
-    @StateObject private var vm = DiaryViewModel()
-    @EnvironmentObject var authVM: AuthViewModel
-    
+    @EnvironmentObject var vm: DiaryViewModel
+
     var body: some View {
         NavigationView {
             List(vm.diaries) { diary in
@@ -28,10 +27,10 @@ struct DiaryListView: View {
                 .padding(.vertical, 4)
             }
             .navigationTitle("Diaries")
-        }
-        .onAppear {
-            if let uid = authVM.user?.uid {
-                vm.fetchDiaries(for: uid)
+            .onAppear {
+                print("DEBUG: DiaryListView appeared, loading diaries. Current count before load: \(vm.diaries.count)")
+                vm.loadDiaries()
+                print("DEBUG: DiaryListView called loadDiaries()")
             }
         }
     }
@@ -39,8 +38,9 @@ struct DiaryListView: View {
 
 struct DiaryListView_Previews: PreviewProvider {
     static var previews: some View {
-        DiaryListView()
-            .environmentObject(AuthViewModel())
-            .environmentObject(DiaryViewModel())
+        NavigationView {
+            DiaryListView()
+                .environmentObject(DiaryViewModel())
+        }
     }
 }

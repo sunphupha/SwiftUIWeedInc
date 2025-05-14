@@ -13,51 +13,55 @@ struct OnboardingView: View {
     @EnvironmentObject var authVM: AuthViewModel
 
     var body: some View {
-        VStack {
+        ZStack {
+            Color(red: 255/255, green: 249/255, blue: 240/255)
+                .ignoresSafeArea()
+            VStack {
 
-            TabView(selection: $currentPage) {
-                OnboardingPageView(
-                    title: "Welcome to HerbCare",
-                    description: "Discover cannabis-related content tailored for you.",
-                    imageName: "leaf.arrow.circlepath"
-                )
-                .tag(0)
+                TabView(selection: $currentPage) {
+                    OnboardingPageView(
+                        title: "Welcome to HerbCare",
+                        description: "Discover cannabis-related content tailored for you.",
+                        imageName: "leaf.arrow.circlepath"
+                    )
+                    .tag(0)
 
-                OnboardingPageView(
-                    title: "Stay Informed",
-                    description: "Learn about products and legal regulations.",
-                    imageName: "book"
-                )
-                .tag(1)
+                    OnboardingPageView(
+                        title: "Stay Informed",
+                        description: "Learn about products and legal regulations.",
+                        imageName: "book"
+                    )
+                    .tag(1)
 
-                OnboardingPageView(
-                    title: "Get Started",
-                    description: "Enjoy the app safely and responsibly.",
-                    imageName: "checkmark.seal"
-                )
-                .tag(2)
-            }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-
-            HStack(spacing: 8) {
-                ForEach(0..<3) { index in
-                    Circle()
-                        .fill(index == currentPage ? Color.green : Color.gray.opacity(0.5))
-                        .frame(width: 10, height: 10)
+                    OnboardingPageView(
+                        title: "Get Started",
+                        description: "Enjoy the app safely and responsibly.",
+                        imageName: "checkmark.seal"
+                    )
+                    .tag(2)
                 }
-            }
-            .padding(.top, 16)
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
 
-            if currentPage == 2 {
-                Button("Get Started") {
-                    authVM.signOut()
-                    onboardComplete = true
+                HStack(spacing: 8) {
+                    ForEach(0..<3) { index in
+                        Circle()
+                            .fill(index == currentPage ? Color.green : Color.gray.opacity(0.5))
+                            .frame(width: 10, height: 10)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 24)
-            }
+                .padding(.top, 16)
 
-            Spacer()
+                if currentPage == 2 {
+                    Button("Get Started") {
+                        authVM.signOut()
+                        onboardComplete = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 24)
+                }
+
+                Spacer()
+            }
         }
     }
 }
