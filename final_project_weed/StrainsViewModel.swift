@@ -23,7 +23,6 @@ struct Strain: Identifiable, Codable {
     var smell_flavour: [String]
     var effect: [String]
     var description: String
-    // … เพิ่ม field อื่นๆ ตามต้องการ
 }
 
 class StrainsViewModel: ObservableObject {

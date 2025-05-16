@@ -2,53 +2,97 @@
 //  MainView.swift
 //  final_project_weed
 //
-//  Created by Sun Phupha on 11/5/2568 BE.
+//  Created by Sun Phupha on 10/5/2568 BE.
 //
-
 import SwiftUI
 
 struct MainView: View {
-    @StateObject var userVM = UserViewModel()
     @EnvironmentObject var authVM: AuthViewModel
+    @EnvironmentObject var userVM: UserViewModel
+    @EnvironmentObject var cartManager: CartManager
+    @EnvironmentObject var orderVM: OrderViewModel
+    @EnvironmentObject var paymentVM: PaymentViewModel
+    @EnvironmentObject var diaryVM: DiaryViewModel
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         Group {
             if authVM.user == nil {
-                // Not signed in → show login screen
                 LoginView()
+                    .environmentObject(authVM)
             } else {
-                // Signed in → show strains list
-                TabView {
+                TabView(selection: $appState.selectedTab) {
+                    
+                    // Tab 1: HomePage
                     HomePage()
+                        .environmentObject(authVM)
                         .environmentObject(userVM)
+                        .environmentObject(cartManager)
                         .tabItem {
-                            Label("Home", systemImage: "house")
+                            Label("หน้าหลัก", systemImage: "house.fill")
                         }
+                        .tag(0)
+
                     NavigationView {
                         DiaryListView()
+                            .environmentObject(diaryVM)
+                            .environmentObject(userVM)
                     }
-                    .environmentObject(userVM)
+                    .navigationViewStyle(StackNavigationViewStyle())
                     .tabItem {
-                        Label("Diary", systemImage: "book")
+                        Label("ไดอารี่", systemImage: "book.fill")
                     }
-                    UserPage()
-                        .environmentObject(userVM)
-                        .tabItem {
-                            Label("User", systemImage: "person.circle")
-                        }
+                    .tag(1)
+
+                    NavigationView {
+                        UserPage()
+                            .environmentObject(authVM)
+                            .environmentObject(userVM)
+                            .environmentObject(paymentVM)
+                            .environmentObject(orderVM)
+                    }
+                    .navigationViewStyle(StackNavigationViewStyle())
+                    .tabItem {
+                        Label("โปรไฟล์", systemImage: "person.fill")
+                    }
+                    .tag(2)
+                }
+                .onAppear {
+                    print("MainView appeared. Current selected tab from AppState: \(appState.selectedTab)")
+                    if authVM.user != nil && userVM.user == nil {
+                        userVM.fetchUserData()
+                    }
                 }
             }
         }
     }
 }
 
+// MARK: - Preview
+#if DEBUG
 struct MainView_Previews: PreviewProvider {
     static var previews: some View {
-        MainView()
-          .environmentObject(AuthViewModel())
-          .environmentObject(CartManager())
-          .environmentObject(OrderViewModel())
-          .environmentObject(PaymentViewModel())
-          .environmentObject(DiaryViewModel()) // ถ้าใช้ @EnvironmentObject
+        // สร้าง Mock Instances สำหรับ Preview
+        let mockAuthVM = AuthViewModel()
+        // สมมติว่าผู้ใช้ login แล้วสำหรับ Preview
+        // mockAuthVM.user = ... // คุณอาจจะต้องสร้าง Mock User object หรือ instance ของ FirebaseAuth.User
+
+        let mockUserVM = UserViewModel()
+        let mockCartManager = CartManager()
+        let mockOrderVM = OrderViewModel()
+        let mockPaymentVM = PaymentViewModel()
+        let mockDiaryVM = DiaryViewModel()
+        let mockAppState = AppState()
+        // mockAppState.selectedTab = 0 // สามารถตั้งค่า Tab เริ่มต้นสำหรับ Preview ได้
+
+        return MainView()
+            .environmentObject(mockAuthVM)
+            .environmentObject(mockUserVM)
+            .environmentObject(mockCartManager)
+            .environmentObject(mockOrderVM)
+            .environmentObject(mockPaymentVM)
+            .environmentObject(mockDiaryVM)
+            .environmentObject(mockAppState)
     }
 }
+#endif

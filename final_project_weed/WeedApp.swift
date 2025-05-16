@@ -2,7 +2,7 @@
 //  WeedApp.swift
 //  final_project_weed
 //
-//  Created by Sun Phupha on 11/5/2568 BE.
+//  Created by Sun Phupha on 13/5/2568 BE.
 //
 
 import SwiftUI
@@ -10,53 +10,47 @@ import FirebaseCore
 
 @main
 struct WeedApp: App {
-    @StateObject var userVM = UserViewModel()
+    // MARK: - App Delegate
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
+    // MARK: - State Objects (ViewModels and Global State)
     @StateObject private var authVM = AuthViewModel()
+    @StateObject private var userVM = UserViewModel()
+    @StateObject private var cartManager = CartManager()
+    @StateObject private var orderVM = OrderViewModel()
+    @StateObject private var paymentVM = PaymentViewModel()
+    @StateObject private var diaryVM = DiaryViewModel()
+    @StateObject private var strainsVM = StrainsViewModel()
+    @StateObject private var appState = AppState()
+
+    // MARK: - App Storage
     @AppStorage("ageConfirmed") private var ageConfirmed = false
     @AppStorage("onboardComplete") private var onboardComplete = false
 
-    @StateObject private var cartManager = CartManager() // ✅ เพิ่มตรงนี้
-    
+    // MARK: - Body
     var body: some Scene {
         WindowGroup {
-            if !ageConfirmed {
-                AgeConfirmationView()
-                  .environmentObject(authVM)
-                  .environmentObject(cartManager) // ✅ inject
-                  .environmentObject(OrderViewModel())
-                  .environmentObject(PaymentViewModel())
-                  .environmentObject(DiaryViewModel())
-            } else if !onboardComplete {
-                OnboardingView()
-                  .environmentObject(authVM)
-                  .environmentObject(cartManager) // ✅ inject
-                  .environmentObject(OrderViewModel())
-                  .environmentObject(PaymentViewModel())
-                  .environmentObject(DiaryViewModel())
-            } else {
-                MainView()
-                    .environmentObject(authVM)
-                    .environmentObject(cartManager) // ✅ inject
-                    .environmentObject(OrderViewModel())
-                    .environmentObject(PaymentViewModel())
-                    .environmentObject(DiaryViewModel())
+            Group {
+                if !ageConfirmed {
+                    AgeConfirmationView()
+                } else if !onboardComplete {
+                    OnboardingView()
+                } else {
+                    MainView()
+                }
+            }
+            .environmentObject(authVM)
+            .environmentObject(userVM)
+            .environmentObject(cartManager)
+            .environmentObject(orderVM)
+            .environmentObject(paymentVM)
+            .environmentObject(diaryVM)
+            .environmentObject(strainsVM)
+            .environmentObject(appState)
+            .onAppear {
+                print("DEBUG (WeedApp): Root view appeared. Fetching initial strains data if needed.")
             }
         }
     }
 }
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-        FirebaseApp.configure()
-        #if DEBUG
-        // DEBUG: reset onboarding/age flags for testing
-        UserDefaults.standard.removeObject(forKey: "ageConfirmed")
-        UserDefaults.standard.removeObject(forKey: "onboardComplete")
-        #endif
-        return true
-    }
-}

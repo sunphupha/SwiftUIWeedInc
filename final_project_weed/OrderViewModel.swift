@@ -56,12 +56,9 @@ class OrderViewModel: ObservableObject {
         }
     }
 
-    /// Place a new order and return its Firestore-assigned document ID
     func placeOrder(_ order: Order, completion: @escaping (String?) -> Void) {
         do {
-            // Add document and capture its reference
             let ref = try db.collection("orders").addDocument(from: order)
-            // Return the generated document ID
             completion(ref.documentID)
         } catch {
             print("❌ Error placing order:", error.localizedDescription)

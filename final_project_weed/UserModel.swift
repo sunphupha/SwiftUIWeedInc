@@ -2,7 +2,7 @@
 //  UserModel.swift
 //  final_project_weed
 //
-//  Created by Phatcharakiat Thailek on 12/5/2568 BE.
+//  Created by Sun Phupha on 13/5/2568 BE.
 //
 
 import Foundation
@@ -19,6 +19,7 @@ struct UserModel: Identifiable, Codable {
   var favorites: [String]
   var paymentMethods: [PaymentMethod]
 }
+
 struct PaymentMethod: Identifiable, Codable {
     var id: String
     var brand: String

@@ -2,15 +2,13 @@
 //  DiaryViewModel.swift
 //  final_project_weed
 //
-//  Created by Sun Phupha on 13/5/2568 BE.
+//  Created by Sun Phupha on 11/5/2568 BE.
 //
-
 import Foundation
-import FirebaseFirestore
+import FirebaseFirestore 
 import FirebaseAuth
 
-/// Model สำหรับ Diary entry
-struct Diary: Identifiable, Codable {
+struct Diary: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     var userId: String
     var orderId: String
@@ -22,81 +20,135 @@ struct Diary: Identifiable, Codable {
     var feelings: [String]
     var whyUse: [String]
     var notes: String?
+
 }
 
-/// ViewModel สำหรับโหลด–บันทึก Diary
 class DiaryViewModel: ObservableObject {
     @Published var diaries: [Diary] = []
+    
     private let db = Firestore.firestore()
+    
+    private var listenerRegistration: ListenerRegistration?
 
-    /// Fetch diaries ของ user ที่ระบุ
-    func fetchDiaries(for uid: String) {
-        db.collection("diaries")
-          .whereField("userId", isEqualTo: uid)
-          .order(by: "orderDate", descending: true)
-          .addSnapshotListener { snapshot, error in
-              print("DEBUG: fetchDiaries() snapshot listener triggered")
-              if let error = error {
-                  print("❌ Failed to fetch diaries:", error.localizedDescription)
-                  return
-              }
-              guard let docs = snapshot?.documents else {
-                  print("⚠️ No diary documents found")
-                  return
-              }
-              print("DEBUG: fetched \(docs.count) documents from Firestore")
-              let list = docs.compactMap { try? $0.data(as: Diary.self) }
-              DispatchQueue.main.async {
-                  self.diaries = list
-              }
-          }
+    init() {
+        print("DEBUG (DiaryViewModel): Initialized.")
     }
 
-    /// Convenience loader ใช้ UID ของ user ที่ล็อกอินอยู่
+    func fetchDiaries(for uid: String) {
+        listenerRegistration?.remove()
+        print("DEBUG (DiaryViewModel): Attempting to fetch diaries for UID: \(uid)")
+
+        listenerRegistration = db.collection("diaries")
+            .whereField("userId", isEqualTo: uid)
+            .order(by: "useDate", descending: true)
+            .addSnapshotListener { [weak self] (querySnapshot, error) in
+                guard let self = self else { return }
+
+                if let error = error {
+                    print("❌ ERROR (DiaryViewModel): Failed to fetch diaries for UID \(uid): \(error.localizedDescription)")
+                    return
+                }
+
+                guard let documents = querySnapshot?.documents else {
+                    print("⚠️ WARNING (DiaryViewModel): No diary documents found for UID \(uid).")
+                    DispatchQueue.main.async {
+                        self.diaries = []
+                    }
+                    return
+                }
+
+                print("DEBUG (DiaryViewModel): Fetched \(documents.count) diary documents from Firestore for UID \(uid).")
+                
+                let fetchedDiaries = documents.compactMap { document -> Diary? in
+                    do {
+                        return try document.data(as: Diary.self)
+                    } catch {
+                        print("❌ ERROR (DiaryViewModel): Failed to decode diary document \(document.documentID): \(error.localizedDescription)")
+                        return nil
+                    }
+                }
+                
+                DispatchQueue.main.async {
+                    self.diaries = fetchedDiaries
+                    print("DEBUG (DiaryViewModel): Diaries array updated with \(fetchedDiaries.count) items.")
+                }
+            }
+    }
+
     func loadDiaries() {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            print("ERROR: No authenticated user UID")
+        guard let currentUserID = Auth.auth().currentUser?.uid else {
+            print("❌ ERROR (DiaryViewModel): No authenticated user found. Cannot load diaries.")
+            DispatchQueue.main.async {
+                self.diaries = []
+            }
             return
         }
-        print("DEBUG: loadDiaries() called for uid: \(uid)")
-        fetchDiaries(for: uid)
+        print("DEBUG (DiaryViewModel): loadDiaries() called for current user UID: \(currentUserID)")
+        fetchDiaries(for: currentUserID)
     }
 
-    /// เพิ่ม diary entry ใหม่และรีโหลด list
     func addDiary(_ diary: Diary) {
+        guard let currentUserID = Auth.auth().currentUser?.uid else {
+            print("❌ ERROR (DiaryViewModel): No authenticated user. Cannot add diary.")
+            return
+        }
+        
+        var diaryToAdd = diary
+        if diaryToAdd.userId != currentUserID {
+            print("⚠️ WARNING (DiaryViewModel): Diary's userId (\(diary.userId)) does not match current user's UID (\(currentUserID)). Overwriting diary.userId.")
+            diaryToAdd.userId = currentUserID
+        }
+
         do {
-            _ = try db.collection("diaries").addDocument(from: diary) { error in
-                print("DEBUG: addDiary() callback, error: \(error?.localizedDescription ?? "none")")
+            _ = try db.collection("diaries").addDocument(from: diaryToAdd) { [weak self] error in
+                guard let self = self else { return }
                 if let error = error {
-                    print("❌ Failed to add diary:", error.localizedDescription)
+                    print("❌ ERROR (DiaryViewModel): Failed to add diary: \(error.localizedDescription)")
                 } else {
+                    print("✅ SUCCESS (DiaryViewModel): Diary added successfully. Reloading diaries.")
                     self.loadDiaries()
                 }
             }
         } catch {
-            print("❌ Failed to encode diary:", error.localizedDescription)
+            print("❌ ERROR (DiaryViewModel): Failed to encode diary for adding: \(error.localizedDescription)")
         }
     }
 
-    /// Upsert (add or update) a diary entry using its document ID
     func upsertDiary(_ diary: Diary) {
-        guard let docId = diary.id else {
-            print("❌ Cannot upsert diary without an ID")
+        guard let currentUserID = Auth.auth().currentUser?.uid else {
+            print("❌ ERROR (DiaryViewModel): No authenticated user. Cannot upsert diary.")
             return
         }
-        do {
-            try db.collection("diaries")
-                .document(docId)
-                .setData(from: diary) { error in
-                    print("DEBUG: upsertDiary() callback, error: \(error?.localizedDescription ?? "none")")
+
+        var diaryToUpsert = diary
+        if diaryToUpsert.userId != currentUserID {
+            print("⚠️ WARNING (DiaryViewModel): Diary's userId (\(diary.userId)) for upsert does not match current user's UID (\(currentUserID)). Overwriting diary.userId.")
+            diaryToUpsert.userId = currentUserID
+        }
+
+        if let documentID = diaryToUpsert.id, !documentID.isEmpty {
+            // If ID exists, update the existing document
+            print("DEBUG (DiaryViewModel): Attempting to update diary with ID: \(documentID)")
+            do {
+                try db.collection("diaries").document(documentID).setData(from: diaryToUpsert, merge: true) { [weak self] error in
+                    guard let self = self else { return }
                     if let error = error {
-                        print("❌ Failed to upsert diary:", error.localizedDescription)
+                        print("❌ ERROR (DiaryViewModel): Failed to update diary \(documentID): \(error.localizedDescription)")
                     } else {
-                        self.loadDiaries()
+                        print("✅ SUCCESS (DiaryViewModel): Diary \(documentID) updated successfully. Reloading diaries.")
                     }
                 }
-        } catch {
-            print("❌ Encoding diary failed:", error.localizedDescription)
+            } catch {
+                print("❌ ERROR (DiaryViewModel): Failed to encode diary for updating \(documentID): \(error.localizedDescription)")
+            }
+        } else {
+            print("DEBUG (DiaryViewModel): Diary ID is nil or empty. Calling addDiary instead.")
+            addDiary(diaryToUpsert)
         }
+    }
+    
+    deinit {
+        print("DEBUG (DiaryViewModel): Deinitializing. Removing Firestore listener.")
+        listenerRegistration?.remove()
     }
 }

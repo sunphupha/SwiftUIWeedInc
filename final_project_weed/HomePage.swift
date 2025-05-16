@@ -53,17 +53,13 @@ struct HomePage: View {
                 
                 // Header
                 HStack {
-                    Image(systemName: "leaf.fill")
+                    Image("HClogo")
                         .foregroundColor(.green)
                         .font(.system(size: 24))
-                    Text("GreenCart")
+                    Text("HerbCare")
                         .font(.largeTitle)
                         .foregroundColor(.green)
                     Spacer()
-                    Image(systemName: "magnifyingglass")
-                        .padding()
-                        .background(Color.green.opacity(0.1))
-                        .cornerRadius(8)
                     NavigationLink(destination: CartPage()) {
                         Image(systemName: "cart")
                             .padding()
